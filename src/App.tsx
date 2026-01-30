@@ -47,6 +47,10 @@ import contentCss from 'tinymce/skins/content/default/content.min.css?raw';
 import contentUiCss from 'tinymce/skins/ui/oxide/content.min.css?raw';
 
 import { registerTableCellBorderMenu } from './tinymce/tableCellBorder';
+import {
+  TABLE_BORDER_FALLBACK_RESET_CSS,
+  registerDefaultTableBorders,
+} from './tinymce/tableDefaults';
 
 export default function TinyEditorComponent() {
   // note that skin and content_css is disabled to avoid the normal
@@ -56,7 +60,11 @@ export default function TinyEditorComponent() {
       init={{
         skin: false,
         content_css: false,
-        content_style: [contentCss, contentUiCss].join('\n'),
+        content_style: [
+          contentCss,
+          contentUiCss,
+          TABLE_BORDER_FALLBACK_RESET_CSS,
+        ].join('\n'),
         height: '100%',
         resize: false,
         language: 'ko_KR',
@@ -70,6 +78,7 @@ export default function TinyEditorComponent() {
         contextmenu: 'link image table | cellborder',
         setup: (editor) => {
           registerTableCellBorderMenu(editor);
+          registerDefaultTableBorders(editor);
         },
       }}
     />

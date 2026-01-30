@@ -102,7 +102,11 @@ const getRawStyleValue = (cell: HTMLElement, property: string): string =>
 
 const normalizeStyleValue = (value: string): string => value.trim();
 
-const normalizeColorValue = (value: string): string => rgbToHex(value);
+const normalizeColorValue = (value: string): string => {
+  const normalized = rgbToHex(value).trim();
+  if (!normalized) return '';
+  return normalized.toLowerCase() === 'transparent' ? '' : normalized;
+};
 
 const getCellBorderData = (cell: HTMLElement): Record<string, string> => {
   const data: Record<string, string> = {};
@@ -165,16 +169,24 @@ const parseBorderField = (
 const buildStylePayload = (
   initialData: Record<string, string>,
   data: Record<string, string>,
+  touchedFields: Set<string>,
 ): Record<string, string> => {
   const payload: Record<string, string> = {};
   Object.keys(data).forEach((key) => {
-    if (data[key] === initialData[key]) return;
+    const wasTouched = touchedFields.has(key);
+    if (!wasTouched && data[key] === initialData[key]) return;
     const parsed = parseBorderField(key);
     if (!parsed) return;
     const { side, kind } = parsed;
     const styleName = `border-${side}-${kind.toLowerCase()}`;
     const rawValue = String(data[key] ?? '').trim();
-    const value = kind === 'Width' && rawValue !== '' ? addPxSuffix(rawValue) : rawValue;
+    let value = rawValue;
+    if (kind === 'Width' && rawValue !== '') {
+      value = addPxSuffix(rawValue);
+    }
+    if (kind === 'Color' && rawValue === '') {
+      value = 'transparent';
+    }
     payload[styleName] = value;
   });
   return payload;
@@ -184,8 +196,9 @@ const applyBorderChanges = (
   editor: any,
   initialData: Record<string, string>,
   data: Record<string, string>,
+  touchedFields: Set<string>,
 ): void => {
-  const payload = buildStylePayload(initialData, data);
+  const payload = buildStylePayload(initialData, data, touchedFields);
   if (Object.keys(payload).length === 0) {
     return;
   }
@@ -200,6 +213,7 @@ export const openTableCellBorderDialog = (editor: any): void => {
   }
   const initialData = getSharedBorderData(cells);
   const styleItems = getBorderStyleItems(editor);
+  const touchedFields = new Set<string>();
 
   editor.windowManager.open({
     title: '셀 테두리 설정',
@@ -235,9 +249,14 @@ export const openTableCellBorderDialog = (editor: any): void => {
       { type: 'submit', text: '적용', primary: true },
     ],
     initialData,
+    onChange: (_api: any, details: { name?: string }) => {
+      if (details?.name) {
+        touchedFields.add(details.name);
+      }
+    },
     onSubmit: (api: any) => {
       const data = api.getData() as Record<string, string>;
-      applyBorderChanges(editor, initialData, data);
+      applyBorderChanges(editor, initialData, data, touchedFields);
       api.close();
     },
   });

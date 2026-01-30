@@ -19,7 +19,7 @@ export const registerTableCellBorderMenu = (editor: any): void => {
   });
 
   editor.ui.registry.addContextMenu('cellborder', {
-    update: (element) =>
+    update: (element: Element) =>
       editor.dom.getParent(element, 'td,th') ? MENU_ITEM_ID : '',
   });
 };
